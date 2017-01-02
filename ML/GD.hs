@@ -12,8 +12,4 @@ gd' cost old new x y =
         toNum = sum . map abs . toList
         increment = abs $ toNum new - toNum old
 
-f w x y = scaleMatrix len (multStd (multStd w x - y) $ transpose x)
-    where
-        len = fromIntegral (length . toList $ y) :: Double
-
 gd cost w x y = gd' cost w (w - scaleMatrix 0.0001 (cost w x y)) x y
