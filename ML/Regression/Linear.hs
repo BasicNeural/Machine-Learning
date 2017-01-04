@@ -2,6 +2,6 @@ module ML.Regression.Linear where
 
 import Data.Matrix
 
-linear w x y = scaleMatrix len (multStd (multStd w x - y) $ transpose x)
+linear x y w = (/len) . sum . map (**2) . toList $ multStd w x - y
     where
         len = fromIntegral (length . toList $ y) :: Double
