@@ -9,9 +9,9 @@ gd' cost old new x y =
         False -> new
     where
         precision = 0.0000000001
-        eps = 0.0001
+        eps = 0.001
 
-gd cost x y w = gd' cost w (w - 0.0001 * derive (cost x y) w) x y
+gd cost x y w = gd' cost w (w - 0.001 * derive (cost x y) w) x y
 
 gdMatrix' cost old new x y =
     case increment > precision of 
@@ -19,8 +19,8 @@ gdMatrix' cost old new x y =
         False -> new
     where
         precision = 0.0000000001
-        eps = 0.0001
+        eps = 0.001
         toNum = sum . map abs . toList
         increment = abs $ toNum new - toNum old
 
-gdMatrix cost x y w = gdMatrix' cost w (w - scaleMatrix 0.0001 (deriveMatrix (cost x y) w)) x y
+gdMatrix cost x y w = gdMatrix' cost w (w - scaleMatrix 0.001 (deriveMatrix (cost x y) w)) x y
