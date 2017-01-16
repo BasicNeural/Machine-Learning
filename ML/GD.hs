@@ -5,8 +5,8 @@ import Data.Matrix
 
 gd' cost old new x y =
     case abs (new - old) > precision of 
-        True  -> gd' cost new (new - eps * derive (cost x y) new) x y
         False -> new
+        True  -> gd' cost new (new - eps * derive (cost x y) new) x y
     where
         precision = 0.0000000001
         eps = 0.001
@@ -15,8 +15,8 @@ gd cost x y w = gd' cost w (w - 0.001 * derive (cost x y) w) x y
 
 gdMatrix' cost old new x y =
     case increment > precision of 
-        True  -> gdMatrix' cost new (new - scaleMatrix eps (deriveMatrix (cost x y) new)) x y
         False -> new
+        True  -> gdMatrix' cost new (new - scaleMatrix eps (deriveMatrix (cost x y) new)) x y
     where
         precision = 0.0000000001
         eps = 0.001
