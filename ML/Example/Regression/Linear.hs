@@ -1,3 +1,6 @@
+{-
+선형 회기 알고리즘
+-}
 module ML.Example.Regression.Linear where
 
 import Data.Matrix

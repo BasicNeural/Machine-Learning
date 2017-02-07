@@ -1,3 +1,7 @@
+{-
+경사 하강을 하는 함수
+가장 기본적인 경사 하강 알고리즘을 사용한다
+-}
 module ML.GD where
 
 import ML.Derive
