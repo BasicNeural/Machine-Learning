@@ -1,53 +1,44 @@
 module Main where
 
-import System.Environment
-import Data.Matrix as M
-import Data.List   as L
-import Text.CSV
 import ML.Train
-import ML.Example.Regression.Linear
-
-predict w x r = do
-    let result = head . M.toList $ w * x
-    putStr "입력값 : "
-    putStrLn . show $ M.transpose x
-    putStr "예측값 :"
-    putStrLn $ show result
-    putStr "실제값 :"
-    putStrLn $ show r
-    putStr "오차율 : "
-    putStr . show $ abs (r - result) / r * 100
-    putStrLn "%"
-    putStrLn ""
+import ML.Example.Classification.Softmax
+import Data.Matrix
 
 main = do
+    let x = fromLists [[1,1,1,1,1,1,1,1],[2,3,3,5,7,2,6,7],[1,2,4,5,5,5,6,7]]
+    let w = fromLists [[0,0,0],[0,0,0],[0,0,0]]
+    let y = transpose . fromLists $ [[0,0,0,0,0,0,1,1],[0,0,0,1,1,1,0,0],[1,1,1,0,0,0,0,0]]
 
-    [learningRateString, stepString] <- getArgs
+    let r = trainMatrix 0.001 2000 loss x y w
 
-    let learningRate = read learningRateString :: Double
-    let step = read stepString :: Int
+    putStrLn "weights"
+    putStrLn . show $ r
 
-    (Right rawdata) <- parseCSVFromFile ".\\resource\\data.csv"
-
-    let dataset = L.transpose . map (map (\x -> read x :: Double)) $ rawdata
-
-    let x = fromLists $ (replicate (length . head $ dataset) 1) : init dataset
-    let y = fromLists [last dataset]
-
-    let w = fromLists [replicate (nrows x) 0]
+    let test1 = softmax $ multStd (fromLists [[1,11,7]]) r
+    let test2 = softmax $ multStd (fromLists [[1,3,4]]) r
+    let test3 = softmax $ multStd (fromLists [[1,1,0]]) r
     
-    let result = trainMatrix learningRate step linear x y w
 
-    putStrLn ""
-    putStrLn "학습 결과"
-    putStrLn . show $ result
+    putStrLn "softmax result weights"
+
+    putStrLn . show $ test1
+
+    putStr "your class is "
+    putChar $ snd . maximum $ zip (toList test1) "ABC"
+    putStrLn "\n"
     
-{-
-167,46,128
-217,72,166
--}
-    let d1 = M.transpose . fromLists $ [[1,167,46]]
-    let d2 = M.transpose . fromLists $ [[1,217,72]]
+    putStrLn "softmax result weights"
 
-    predict result d1 128
-    predict result d2 166
+    putStrLn . show $ test2
+
+    putStr "your class is "
+    putChar $ snd . maximum $ zip (toList test2) "ABC"
+    putStrLn "\n"
+    
+    putStrLn "softmax result weights"
+
+    putStrLn . show $ test3
+    
+    putStr "your class is "
+    putChar $ snd . maximum $ zip (toList test3) "ABC"
+    putStrLn "\n"
