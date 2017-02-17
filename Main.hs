@@ -9,14 +9,14 @@ main = do
     let w = fromLists [[0,0,0],[0,0,0],[0,0,0]]
     let y = transpose . fromLists $ [[0,0,0,0,0,0,1,1],[0,0,0,1,1,1,0,0],[1,1,1,0,0,0,0,0]]
 
-    let r = trainMatrix 0.001 2000 loss x y w
+    let r = trainMatrix 0.001 4000 loss x y w
 
     putStrLn "weights"
     putStrLn . show $ r
 
     let test1 = softmax $ multStd (fromLists [[1,11,7]]) r
-    let test2 = softmax $ multStd (fromLists [[1,3,4]]) r
-    let test3 = softmax $ multStd (fromLists [[1,1,0]]) r
+    let test2 = softmax $ multStd (fromLists [[1,5,5]]) r
+    let test3 = softmax $ multStd (fromLists [[1,2,2]]) r
     
 
     putStrLn "softmax result weights"
