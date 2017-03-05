@@ -1,6 +1,7 @@
 module ML.NN where
 
 import Data.Matrix
+import System.Random
 import ML.Derive
 
 data Layer = Layer (Double -> Double) (Matrix Double)
@@ -8,7 +9,18 @@ data Layer = Layer (Double -> Double) (Matrix Double)
 instance Show Layer where
     show (Layer _ matrix) = show matrix
 
+instance Num Layer where
+    (+) (Layer active lmatrix) (Layer _ rmatrix) = (Layer active (lmatrix + rmatrix))
+    (-) (Layer active lmatrix) (Layer _ rmatrix) = (Layer active (lmatrix - rmatrix))
+    (*) (Layer active lmatrix) (Layer _ rmatrix) = (Layer active (lmatrix * rmatrix))
+    negate = error "ERROR!"
+    abs = error "ERROR!"
+    signum = error "ERROR!"
+    fromInteger = error "ERROR!"
+
 type Network = [Layer]
+
+layerMap f (Layer active synapse) = (Layer active (fmap f synapse))
 
 toScalar :: Matrix a -> a
 toScalar = head . toList
@@ -19,29 +31,41 @@ addBias = fromLists . (:) [1] . toLists
 execute :: Matrix Double -> Layer -> Matrix Double
 execute synapse (Layer active body) = fmap active $ body * (addBias synapse)
 
-executeLayer :: Matrix Double -> Network -> Matrix Double
+executeLayer :: Network -> Matrix Double -> Matrix Double
 executeLayer [] input      = input
 executeLayer network input = foldl execute input network
 
 sigmoid :: Floating a => a -> a
 sigmoid x = 1 / (1 + exp (-x))
 
-logistic :: Floating a => a -> a -> a->
-logistic y y' = - y * log y' - (1 - y) * log y'
+logistic :: Floating a => a -> a -> a
+logistic y' y = - y * log y' - (1 - y) * log y'
+
 --미완성
-backpropagation rate network cost inputs outputs = 
+backpropagation network cost (x, y) = backpro'
     where
         hiddenLayer = reverse . init $ network
         (Layer outActive outSynapse) = last network
-        deltay x y = deriveMatrix (cost y) y' * deriveMatrix outActive y'        --역전파 에서 가장 처음에 만들어지는 델타 함수
-            where y' = addBias $ executeLayer network x
-        updateNetwork x y = zipWith (\(Layer active synapseX) (Layer _ synapseY) -> Layer active (synapseX - fmap (*rate) synapseY) ) x y    --시냅스의 미분 결과로 시냅스를 업데이트
-        backpro [] _ _ = []
-        backpro ((Layer active synapse):layers) delta = newDelta * h : backpro layers newDelta
+        deltay = derive (cost y) y' * derive outActive y'        --역전파 에서 가장 처음에 만들어지는 델타 함수
+            where y' = toScalar $ executeLayer network x
+        backpro [] _ = []
+        backpro ((Layer active synapse):layers) delta = newDelta * input : backpro layers newDelta
             where
-                h = map (\x -> executeLayer x $ init . reverse $ layers)
-                newDelta = map (\x -> deriveMatrix (\wx -> fmap active wx) $ synapse * x) h
-        backpro' = map zipWith (*) delta input : backpro hiddenLayer (map (*outSynapse) delta) deltay
+                input = executeLayer (reverse layers) x
+                newDelta = delta * fmap (\x -> deriveMatrix active x) input
+        backpro' = deltay * input : backpro (reverse hiddenLayer) deltay
             where
-                delta = map (\(x,y) -> deltay x y) (zip inputs outputs)
-                input = map (executeLayer hiddenLayer) inputs
+                input = executeLayer hiddenLayer x
+
+
+sdg' eps step cost network dataset = if step == 0
+        then return network
+        else do
+        rand <- randomRIO (0, length dataset - 1)
+        let execute = backpropagation network cost (dataset !! fromIntegral rand)
+        sdg' eps (step - 1) cost (zipWith (-) network $ map (layerMap (*eps)) execute) dataset
+
+sdg eps step cost network dataset = do
+    rand <- randomRIO (0, length dataset - 1)
+    let execute = backpropagation network cost (dataset !! fromIntegral rand)
+    return $ sdg' eps (step - 1) cost  (zipWith (-) network $ map (layerMap (*eps)) execute) dataset
