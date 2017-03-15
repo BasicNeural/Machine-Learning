@@ -4,15 +4,15 @@ import Data.Matrix
 import System.Random
 import ML.Derive
 
-data Layer = Layer (Double -> Double) (Matrix Double)
+data Layer = Layer (Double -> Double) (Matrix Double) (Matrix Double)
 
 instance Show Layer where
-    show (Layer _ matrix) = show matrix
+    show (Layer _ synapse bias) = "synapse : \n" ++ show synapse ++ "bias : \n" ++ show bias
 
 instance Num Layer where
-    (+) (Layer active lmatrix) (Layer _ rmatrix) = (Layer active (lmatrix + rmatrix))
-    (-) (Layer active lmatrix) (Layer _ rmatrix) = (Layer active (lmatrix - rmatrix))
-    (*) (Layer active lmatrix) (Layer _ rmatrix) = (Layer active (lmatrix * rmatrix))
+    (+) (Layer active lmatrix lBias) (Layer _ rmatrix rBias) = (Layer active (lmatrix + rmatrix) (lBias + rBias))
+    (-) (Layer active lmatrix lBias) (Layer _ rmatrix rBias) = (Layer active (lmatrix - rmatrix) (lBias - rBias))
+    (*) (Layer active lmatrix lBias) (Layer _ rmatrix rBias) = (Layer active (lmatrix * rmatrix) (lBias * rBias))
     negate = error "ERROR!"
     abs = error "ERROR!"
     signum = error "ERROR!"
@@ -20,16 +20,13 @@ instance Num Layer where
 
 type Network = [Layer]
 
-layerMap f (Layer active synapse) = (Layer active (fmap f synapse))
+layerMap f (Layer active synapse bias) = (Layer active (fmap f synapse) (fmap f bias))
 
 toScalar :: Matrix a -> a
 toScalar = head . toList
 
-addBias :: Num a => Matrix a -> Matrix a
-addBias = fromLists . (:) [1] . toLists
-
 execute :: Matrix Double -> Layer -> Matrix Double
-execute synapse (Layer active body) = fmap active $ body * (addBias synapse)
+execute input (Layer active synapse bias) = fmap active $ synapse * input + bias
 
 executeLayer :: Network -> Matrix Double -> Matrix Double
 executeLayer [] input      = input
@@ -39,33 +36,29 @@ sigmoid :: Floating a => a -> a
 sigmoid x = 1 / (1 + exp (-x))
 
 logistic :: Floating a => a -> a -> a
-logistic y' y = - y * log y' - (1 - y) * log y'
+logistic d y = - d * log y - (1 - d) * log y
 
 --미완성
-backpropagation network cost (x, y) = backpro'
+backpropagation network (x, y) = reverse backpro'
     where
         hiddenLayer = reverse . init $ network
-        (Layer outActive outSynapse) = last network
-        deltay = derive (cost y) y' * derive outActive y'        --역전파 에서 가장 처음에 만들어지는 델타 함수
-            where y' = toScalar $ executeLayer network x
+        (Layer outActive outSynapse _) = last network
+        -- 출력층의 델타
+        deltaL = input - y
+            where input = executeLayer network x
+        --
+        backpro' = (Layer outActive (deltaL * transpose input) deltaL) : backpro hiddenLayer (deltaL * outSynapse)
+            where input = executeLayer (reverse hiddenLayer) x
+        --
         backpro [] _ = []
-        backpro ((Layer active synapse):layers) delta = newDelta * input : backpro layers newDelta
-            where
-                input = executeLayer (reverse layers) x
-                newDelta = delta * fmap (\x -> deriveMatrix active x) input
-        backpro' = deltay * input : backpro (reverse hiddenLayer) deltay
-            where
-                input = executeLayer hiddenLayer x
+        backpro ((Layer active synapse bias):layers) delta = (Layer active (newDelta * transpose input) newDelta) : backpro layers (newDelta * synapse)
+            where input = executeLayer (reverse layers) x
+                  newDelta' = (fmap (derive active) $ synapse * input + bias)
+                  newDelta = fromLists . map (\x -> [x]) $ zipWith (*) (toList newDelta') (toList delta)
 
-
-sdg' eps step cost network dataset = if step == 0
+sdg eps step network dataset = if step == 0
         then return network
         else do
         rand <- randomRIO (0, length dataset - 1)
-        let execute = backpropagation network cost (dataset !! fromIntegral rand)
-        sdg' eps (step - 1) cost (zipWith (-) network $ map (layerMap (*eps)) execute) dataset
-
-sdg eps step cost network dataset = do
-    rand <- randomRIO (0, length dataset - 1)
-    let execute = backpropagation network cost (dataset !! fromIntegral rand)
-    return $ sdg' eps (step - 1) cost  (zipWith (-) network $ map (layerMap (*eps)) execute) dataset
+        let execute = backpropagation network (dataset !! fromIntegral rand)
+        sdg eps (step - 1) (zipWith (-) network (map (layerMap (*eps)) execute) ) dataset
