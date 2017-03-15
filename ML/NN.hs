@@ -54,7 +54,7 @@ backpropagation network (x, y) = reverse backpro'
         backpro ((Layer active synapse bias):layers) delta = (Layer active (newDelta * transpose input) newDelta) : backpro layers (newDelta * synapse)
             where input = executeLayer (reverse layers) x
                   newDelta' = (fmap (derive active) $ synapse * input + bias)
-                  newDelta = fromLists . map (\x -> [x]) $ zipWith (*) (toList newDelta') (toList delta)
+                  newDelta = fromLists . map (:[]) $ zipWith (*) (toList newDelta') (toList delta)
 
 sdg eps step network dataset = if step == 0
         then return network

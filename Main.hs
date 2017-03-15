@@ -24,5 +24,5 @@ main = do
     result <- sdg 0.1 20000 [h1,h2] dataset
 
     putStrLn . show $ result
-
+    putStrLn "Result :"
     putStrLn . show $ map (executeLayer result) x
