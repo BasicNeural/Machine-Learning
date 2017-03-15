@@ -22,7 +22,7 @@ main = do
     putStrLn "Start!"
     
     result <- sdg 0.1 20000 [h1,h2] dataset
-
-    putStrLn . show $ result
     putStrLn "Result :"
+    putStrLn . show $ result
+    putStrLn "Test :"
     putStrLn . show $ map (executeLayer result) x
