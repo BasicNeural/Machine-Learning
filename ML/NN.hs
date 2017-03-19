@@ -47,11 +47,11 @@ backpropagation network (x, y) = reverse backpro'
         deltaL = input - y
             where input = executeLayer network x
         --
-        backpro' = (Layer outActive (deltaL * transpose input) deltaL) : backpro hiddenLayer (deltaL * outSynapse)
+        backpro' = (Layer outActive (deltaL * transpose input) deltaL) : backpro hiddenLayer (transpose outSynapse * deltaL)
             where input = executeLayer (reverse hiddenLayer) x
         --
         backpro [] _ = []
-        backpro ((Layer active synapse bias):layers) delta = (Layer active (newDelta * transpose input) newDelta) : backpro layers (newDelta * synapse)
+        backpro ((Layer active synapse bias):layers) delta = (Layer active (newDelta * transpose input) newDelta) : backpro layers (transpose synapse * newDelta)
             where input = executeLayer (reverse layers) x
                   newDelta' = (fmap (derive active) $ synapse * input + bias)
                   newDelta = fromLists . map (:[]) $ zipWith (*) (toList newDelta') (toList delta)
